@@ -3,8 +3,6 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <!-- Content Security Policy (CSP) – ограничивает ресурсы -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';">
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Посылки" />
@@ -14,10 +12,10 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23667eea'/%3E%3Ctext x='50' y='68' font-size='48' text-anchor='middle' fill='white' font-family='Arial'%3E📦%3C/text%3E%3C/svg%3E" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23667eea'/%3E%3Ctext x='50' y='68' font-size='48' text-anchor='middle' fill='white' font-family='Arial'%3E📦%3C/text%3E%3C/svg%3E" />
     <title>Посылки · Калькулятор & Бланк заказа</title>
-    <!-- html2pdf для PDF -->
+    <!-- html2pdf для обратной совместимости (но не используется для плотности) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbz8Zz8Bps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
-        /* ---------- ОСНОВНЫЕ СТИЛИ ---------- */
+        /* ---------- ОСНОВНЫЕ СТИЛИ (без изменений) ---------- */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Roboto', -apple-system, sans-serif; }
         body { background: #f1f5f9; padding: 15px; min-height: 100vh; min-height: 100dvh; }
         .app-container { max-width: 1400px; margin: 0 auto; }
@@ -638,130 +636,9 @@
     <div id="toast" class="toast">✅ Сохранено</div>
 
     <script>
-        // ============================================================
-        // БЛОК ЗАЩИТЫ (анти-отладка, шифрование, целостность)
-        // ============================================================
-        (function antiDebug() {
-            // Запрет контекстного меню
-            document.addEventListener('contextmenu', e => e.preventDefault());
-
-            // Запрет клавиш для открытия DevTools
-            document.addEventListener('keydown', e => {
-                const key = e.key;
-                const ctrl = e.ctrlKey || e.metaKey;
-                const shift = e.shiftKey;
-
-                if (
-                    key === 'F12' ||
-                    (ctrl && shift && (key === 'I' || key === 'i')) ||
-                    (ctrl && shift && (key === 'J' || key === 'j')) ||
-                    (ctrl && (key === 'U' || key === 'u')) ||
-                    (ctrl && shift && (key === 'C' || key === 'c'))
-                ) {
-                    e.preventDefault();
-                    return false;
-                }
-            });
-
-            // Проверка размера окна на наличие DevTools
-            let devtoolsOpen = false;
-            const checkDevTools = () => {
-                const threshold = 160;
-                const widthDiff = window.outerWidth - window.innerWidth;
-                const heightDiff = window.outerHeight - window.innerHeight;
-                if (widthDiff > threshold || heightDiff > threshold) {
-                    if (!devtoolsOpen) {
-                        devtoolsOpen = true;
-                        document.body.innerHTML = '<h1>🔒 Доступ запрещён</h1><p>Инструменты разработчика отключены.</p>';
-                        document.body.style.cssText = 'background:#f0f0f0;display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;';
-                        setTimeout(() => { window.location.href = 'about:blank'; }, 500);
-                    }
-                } else {
-                    devtoolsOpen = false;
-                }
-            };
-            setInterval(checkDevTools, 1000);
-
-            // Защита от clickjacking (встраивание в iframe)
-            if (window.top !== window.self) {
-                document.body.innerHTML = '<h1>🔒 Доступ запрещён</h1><p>Страница не может быть открыта во фрейме.</p>';
-                document.body.style.cssText = 'background:#f0f0f0;display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;';
-            }
-        })();
-
-        (function secureStorage() {
-            const SALT = 'posylki2025!@#secure';
-
-            function xorEncrypt(data) {
-                let result = '';
-                for (let i = 0; i < data.length; i++) {
-                    const charCode = data.charCodeAt(i) ^ SALT.charCodeAt(i % SALT.length);
-                    result += String.fromCharCode(charCode);
-                }
-                return btoa(result);
-            }
-
-            function xorDecrypt(encoded) {
-                try {
-                    const decoded = atob(encoded);
-                    let result = '';
-                    for (let i = 0; i < decoded.length; i++) {
-                        const charCode = decoded.charCodeAt(i) ^ SALT.charCodeAt(i % SALT.length);
-                        result += String.fromCharCode(charCode);
-                    }
-                    return result;
-                } catch (e) {
-                    return null;
-                }
-            }
-
-            const originalSet = Storage.prototype.setItem;
-            const originalGet = Storage.prototype.getItem;
-            const originalRemove = Storage.prototype.removeItem;
-            const originalClear = Storage.prototype.clear;
-
-            Storage.prototype.setItem = function(key, value) {
-                if (typeof value === 'string') {
-                    const encrypted = xorEncrypt(value);
-                    originalSet.call(this, key, encrypted);
-                } else {
-                    originalSet.call(this, key, value);
-                }
-            };
-
-            Storage.prototype.getItem = function(key) {
-                const encrypted = originalGet.call(this, key);
-                if (encrypted === null) return null;
-                const decrypted = xorDecrypt(encrypted);
-                return decrypted !== null ? decrypted : encrypted;
-            };
-
-            Storage.prototype.removeItem = function(key) {
-                originalRemove.call(this, key);
-            };
-            Storage.prototype.clear = function() {
-                originalClear.call(this);
-            };
-        })();
-
-        (function integrityCheck() {
-            const originalFunctions = {
-                calculateTotal: window.calculateTotal,
-                addProduct: window.addProduct,
-            };
-            setInterval(() => {
-                if (window.calculateTotal !== originalFunctions.calculateTotal ||
-                    window.addProduct !== originalFunctions.addProduct) {
-                    document.body.innerHTML = '<h1>🔒 Обнаружено вмешательство</h1><p>Приложение заблокировано.</p>';
-                    document.body.style.cssText = 'background:#f0f0f0;display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;';
-                }
-            }, 2000);
-        })();
-
-        // ============================================================
-        // ОСНОВНОЙ КОД ПРИЛОЖЕНИЯ (калькулятор, бланк, плотность, PDF)
-        // ============================================================
-        // Service Worker
+        // ========================================================
+        // 1. SERVICE WORKER (для кеширования)
+        // ========================================================
         if ('serviceWorker' in navigator) {
             const swCode = `
                 const CACHE_NAME = 'posylki-v3';
@@ -786,7 +663,9 @@
             navigator.serviceWorker.register(URL.createObjectURL(blob));
         }
 
-        // Функция печати PDF через iframe
+        // ========================================================
+        // 2. ФУНКЦИЯ ДЛЯ РАЗДЕЛЬНОЙ ПЕЧАТИ PDF (через iframe)
+        // ========================================================
         function printContainer(selector, removeSelectors = '.btn, .remove-btn, .save-load-section, .buttons-section, .copy-row, .tab-switcher') {
             const container = document.querySelector(selector);
             if (!container) {
@@ -856,10 +735,12 @@
             }, 600);
         }
 
-        // Основной код приложения
+        // ========================================================
+        // 3. ОСНОВНОЙ СКРИПТ (калькулятор, бланк, модалки)
+        // ========================================================
         document.addEventListener('DOMContentLoaded', function() {
 
-            // PDF кнопки
+            // --- PDF для калькулятора и бланка ---
             document.getElementById('exportToPDFBtn')?.addEventListener('click', function() {
                 printContainer('.calc-container');
             });
@@ -881,7 +762,7 @@
                 }, 2000);
             });
 
-            // Переключение вкладок
+            // --- Переключение вкладок ---
             const tabCalc = document.getElementById('tabCalc');
             const tabBlank = document.getElementById('tabBlank');
             const calcPanel = document.getElementById('calcPanel');
@@ -903,7 +784,7 @@
             tabCalc.addEventListener('click', () => switchTab('calculator'));
             tabBlank.addEventListener('click', () => switchTab('blank'));
 
-            // --- КАЛЬКУЛЯТОР ---
+            // --- КАЛЬКУЛЯТОР (основной функционал) ---
             const pkgNum = document.getElementById('packageNumber');
             const pkgDate = document.getElementById('packageDate');
             const delRate = document.getElementById('deliveryRate');
@@ -965,7 +846,7 @@
             function getPkgNum() { if (!pkgNum.value.trim()) pkgNum.value = genPkgNum(); return pkgNum.value.trim(); }
             function updatePackageDate() { if (pkgDate) pkgDate.textContent = '📅 ' + new Date().toLocaleString('ru-RU'); }
 
-            window.calculateTotal = function() {
+            function calculateTotal() {
                 const dr = parseFloat(delRate.value) || 0;
                 const cr = parseFloat(cargoR.value) || 0;
                 const it = incTare.checked;
@@ -990,9 +871,9 @@
                 totalI.textContent = items + ' шт.';
                 const totalCostVal = kg * dr + kg * cr + pCost;
                 totalC.textContent = totalCostVal.toFixed(2) + ' $';
-            };
+            }
 
-            window.addProduct = function() {
+            function addProduct() {
                 const n = productCounter++;
                 const div = document.createElement('div');
                 div.className = 'product-row';
@@ -1006,7 +887,7 @@
                     calculateTotal();
                 });
                 calculateTotal();
-            };
+            }
 
             function resetAll() { if (confirm('Очистить все товары?')) { prodContainer.innerHTML = ''; productCounter = 1; calculateTotal(); } }
 
@@ -1415,12 +1296,13 @@
 
             document.getElementById('showDensityBtn').addEventListener('click', function() {
                 densityOverlay.classList.add('show');
-                calculateDensity();
+                calculateDensity(); // сразу посчитать
             });
 
             densityCloseBtn.addEventListener('click', function() { densityOverlay.classList.remove('show'); });
             densityOverlay.addEventListener('click', function(e) { if (e.target === densityOverlay) densityOverlay.classList.remove('show'); });
 
+            // --- Функции калькулятора плотности ---
             function calculateDensity() {
                 const l = parseFloat(document.getElementById('density-length').value);
                 const h = parseFloat(document.getElementById('density-height').value);
@@ -1501,7 +1383,9 @@
 
             densityCalcBtn.addEventListener('click', calculateDensity);
 
+            // --- PDF для плотности (исправлено: используем printContainer) ---
             densityPdfBtn.addEventListener('click', function() {
+                // Создаём временный контейнер с результатами
                 const resultArea = document.getElementById('densityResultArea');
                 const wrapper = document.createElement('div');
                 wrapper.style.background = 'white';
@@ -1509,6 +1393,7 @@
                 wrapper.style.maxWidth = '700px';
                 wrapper.style.margin = '0 auto';
                 const clone = resultArea.cloneNode(true);
+                // Удаляем кнопки, если они есть внутри (их нет)
                 wrapper.appendChild(clone);
                 const tempId = 'density-print-' + Date.now();
                 wrapper.id = tempId;
@@ -1537,7 +1422,7 @@
                 }
             });
 
-            // --- МОДАЛКА ПАМЯТКИ ---
+            // --- МОДАЛКА ПАМЯТКИ "КАК РАССЧИТАТЬ СТОИМОСТЬ" ---
             const costOverlay = document.getElementById('costModalOverlay');
             const costCloseBtn = document.getElementById('costCloseBtn');
             document.getElementById('showCostHintBtn').addEventListener('click', function() {
